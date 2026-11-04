@@ -1,8 +1,7 @@
-#include "libft.h"
-
+#include "unistd.h"
 
 int main(void) {
     
-    ft_printf("Salut la team Malloc on est la\n"); 
+    write(1, "Salut la team\n", 15); 
     return 1;
 }

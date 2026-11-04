@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/includes",
+                "${workspaceFolder}/libft/includes"
+            ],
+            "compilerPath": "/usr/bin/cc",
+            "cStandard": "c99"
+        }
+    ],
+    "version": 4
+}

@@ -61,7 +61,7 @@ cmake-build-*/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
-# Makefile
+Makefile
 
 # Editor / IDE
 # .vscode/ #Leaving .vscode in otherwise the viewing experience of the code is worse.
