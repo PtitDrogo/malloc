@@ -16,7 +16,7 @@ SRCS       = $(SRCS_DIR)/ft_malloc.c \
 OBJS       = $(SRCS:$(SRCS_DIR)/%.c=$(OBJS_DIR)/%.o)
 
 CC         = cc
-CFLAGS     = -Wall -Wextra -Werror -fPIC -pthread
+CFLAGS     = -Wall -Wextra -Werror -fPIC -pthread -g3
 INCLUDES   = -I $(HEADER_DIR) -I $(LIBFT_DIR)/includes
 
 YELLOW     = \033[1;33m
