@@ -1,34 +1,74 @@
 #include "ft_malloc.h"
 #include <pthread.h>
+#include <stdint.h>
 
-static t_block *g_heap = NULL;
+// Points to the first allocated zone header.
+static t_zone *g_heap = NULL;
 // static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
 
 #define TINY 1
 #define SMALL 2
 #define LARGE 3
+#define ALIGN16(n) (((n) + 15) & ~(size_t)15)
+
+
+
+//tricks to store the free bit into the aligned size.
+//Technicaly breaks the exemple in the subject, but idc maybe i can be a cool kid.
+#define FREE_BIT 1UL
+
+#define GET_SIZE(h)     ((h)->size & ~(size_t)15)
+#define IS_FREE(h)      ((h)->size & FREE_BIT)
+#define SET_FREE(h)     ((h)->size |= FREE_BIT)
+#define SET_USED(h)     ((h)->size &= ~FREE_BIT)
+
 
 // Introducing "ft_" in front of each function while coding them
 
+int get_alloc_type(size_t size) {
+    int alloc_type;
+    if (size <= 128) {
+        alloc_type = TINY;
+    } else if (size <= 4096) {
+        alloc_type = SMALL;
+    } else {
+        alloc_type = LARGE;
+    }
+    return alloc_type;
+}
+
 void *ft_malloc(size_t size) {
-    if (size == 0) {
+    if (size == 0 || size > SIZE_MAX - 15) {
         return NULL;
     }
 
     // Get the type of allocation
-    //  int alloc_type;
-    //  if (size <= 128) {
-    //      alloc_type = TINY;
-    //  } else if (size <= 4096) {
-    //      alloc_type = SMALL;
-    //  } else {
-    //      alloc_type = LARGE;
-    //  }
+    int alloc_type = get_alloc_type(size);
+
+    // I should look if there is already an allocation of this caliber that exists.
+    // so theres already at least one other allocation
+    if (g_heap && alloc_type != LARGE) {
+        t_zone *cur = g_heap;
+
+        while (cur->next) {
+            if (cur->type == alloc_type && cur->used_count < ALLOCS_PER_ZONE) {
+                // we can pick the first available zone here and call it a day.
+                t_block *header = cur + sizeof(t_zone);
+                //Fuck the linked list we just advance one by one.
+
+                if (header->free) {
+                    header->free = false;
+                    cur->used_count++;
+                    return header + 1;
+                }
+            }
+            cur = cur->next;
+        }
+    }
 
     size_t pages = (size + PAGE_SIZE - 1) / PAGE_SIZE; // tkt
-    printf("%lu\n", pages);
-
     size_t page_len = pages * PAGE_SIZE + sizeof(t_block);
+    printf("%lu\n", pages);
 
     void *ptr = mmap(NULL, page_len, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     if (ptr == MAP_FAILED) {
@@ -36,28 +76,21 @@ void *ft_malloc(size_t size) {
         return NULL;
     }
 
+    // Lets pretend this is the case where nothing has been allocated yet.
+
     if (!g_heap) {
-        g_heap = (t_block *)ptr;
-        *g_heap = (t_block){
-            .size = size,
-            .free = false,
+        g_heap = (t_zone *)ptr;
+        *g_heap = (t_zone){
             .next = NULL,
-        };
-    } else {
-        t_block *cur = g_heap;
-
-        while (cur->next)
-            cur = cur->next;
-
-        cur->next = ptr;
-        *cur->next = (t_block){
-            .size = size,
-            .free = false,
-            .next = NULL,
+            // .prev = NULL,
+            .total_size = page_len,
+            .type = alloc_type,
+            .used_count = 1,
         };
     }
 
-    return ptr + sizeof(t_block);
+    // Returning the start of the usable memory.
+    return ptr + sizeof(t_zone) + sizeof(t_block);
 }
 
 void ft_free(void *ptr) {
